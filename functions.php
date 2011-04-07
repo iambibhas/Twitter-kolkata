@@ -10,7 +10,7 @@ while (!feof($file_handle) ) {
 	array_push($stopWords, $line_of_text[0]);
 }
 fclose($file_handle);
-echo count($stopWords);
+//echo count($stopWords);
 
 
 function get_keywords_from_pool($pool){

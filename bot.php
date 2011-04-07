@@ -11,8 +11,8 @@ twitterResults($last_got_mention);
 $twitter_result_array=Array();
 
 function twitterResults($last_got_mention){
-    $url = "http://api.twitter.com/1/iAmBivas/lists/9594987/statuses.json";
-	//echo $url;
+    $url = "http://api.twitter.com/1/iAmBivas/lists/9594987/statuses.json?since_id=" . $last_got_mention;
+	// echo $url;
     // sendRequest
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url);
@@ -23,17 +23,16 @@ function twitterResults($last_got_mention){
 
     $json = json_decode($body);
     $twitter_result_array=object_to_array($json);
-    echo count($twitter_result_array);
-/*    if(count($twitter_result_array['results'])>0){
-        for($i=0;$i<count($twitter_result_array['results']);$i++){
-
-                echo "<li>" . $twitter_result_array['results'][$i]['from_user'] . ": " . $twitter_result_array['results'][$i]['text'] . "</li>";
-                $user=getUserDetails($twitter_result_array['results'][$i]['from_user']);
-                //storeTheTweet($twitter_result_array['results'][$i],$user);
-
+    //echo count($twitter_result_array);
+    if(count($twitter_result_array)>0){
+        for($i=0;$i<count($twitter_result_array);$i++){
+				$datetime = get_kolkata_time($twitter_result_array[$i]['created_at']);
+                echo "<li>" . $twitter_result_array[$i]['user']['screen_name'] . ": " . $twitter_result_array[$i]['text'] . " at " . $datetime . "</li>";
+                storeTheTweet($twitter_result_array[$i]['user']['screen_name'], $twitter_result_array[$i]['text'], $datetime);
+                store_trends($twitter_result_array[$i]['text']);
         }
-        saveLastMention("{$twitter_result_array['results'][0]['id_str']}");
-    }*/
+        saveLastMention("{$twitter_result_array[0]['id_str']}");
+    }
     ?>
     <pre><?php //print_r($twitter_result_array); ?></pre>
     <?php
@@ -54,31 +53,46 @@ function object_to_array($data){
 
 function saveLastMention($mention_id){
     $myFile = "dynamic_vars.php";
-    $fh = fopen($myFile, 'w') or die("can't open file");
+    $fh = fopen($myFile, 'w+') or die("can't open file");
     $stringData = '<?php $last_got_mention="' . $mention_id . '"; ';
     $stringData .= " ?>";
     fwrite($fh, $stringData);
     fclose($fh);
 }
 
-function getUnixTimestamp($time,$date){
-    $t_array=explode(":",$time);
-    $d_array=explode("-",$date);
-    $timestamp=mktime($t_array[0],$t_array[1],0,$d_array[1],$d_array[0],$d_array[2]);
-    return $timestamp;
+function get_kolkata_time($time_string){
+    $timestamp=strtotime($time_string);
+    $datetime = date("Y-m-d H:i:s", $timestamp);
+    return $datetime;
 }
 
-function storeTheTweet($tweet,$user){
-    $con=mysql_connect(DB_HOST,DB_UNAME,DB_PASSWD);
-    mysql_select_db("koltweeps",$con);
-    $ts=time();
-    mysql_query("INSERT INTO `tweets` (`id`, `from`, `text`, `timestamp`)
-               VALUES (NULL, '{$tweet['from_user']}', '{$user['text']}', '{$ts}'')");
-    //$error=mysql_error($con);
-//    echo $error;
-    mysql_close($con);
+function storeTheTweet($user,$text,$ts){
+	$text=mysql_real_escape_string($text);
+	if(!empty($text) && !empty($user) && !empty($ts)){
+		$con=mysql_connect(DB_HOST,DB_UNAME,DB_PASSWD);
+		mysql_select_db("koltweeps",$con);
+		mysql_query("INSERT INTO `tweets` (`id`, `from`, `text`, `timestamp`)
+				   VALUES (NULL, '{$user}', '{$text}', '{$ts}')");
+				   //echo "INSERT INTO `tweets` (`id`, `from`, `text`, `timestamp`) VALUES (NULL, '{$user}', '{$text}', '{$ts}')";
+		//$error=mysql_error($con);
+		//echo $error;
+		mysql_close($con);
+	}
 
 }
 
+function store_trends($text){
+	$keyword_list=extractCommonWords($text);
+	print_r($keyword_list);
+	$con=mysql_connect(DB_HOST,DB_UNAME,DB_PASSWD);
+	mysql_select_db("koltweeps",$con);
+	foreach($keyword_list as $keywrd=>$freq){
+		if(mysql_query("UPDATE trends SET frequency = frequency +{$freq} WHERE keyword LIKE '{$keywrd}'")){
+			if(mysql_affected_rows()==0)
+				mysql_query("INSERT INTO `koltweeps`.`trends` (`id`, `keyword`, `frequency`) VALUES (NULL, '{$keywrd}', '{$freq}')");
+		}
+	}
+	mysql_close($con);
+}
 ?>
 
