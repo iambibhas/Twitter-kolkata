@@ -94,4 +94,20 @@ function extractCommonWords($string){
       $wordCountArr = array_slice($wordCountArr, 0, 10);
       return $wordCountArr;
 }
+
+function get_top_trends(){
+	$trends=array();
+	$con=mysql_connect(DB_HOST,DB_UNAME,DB_PASSWD);
+	mysql_select_db(DB_NAME,$con);
+	$result=mysql_query("SELECT * FROM `trends` WHERE `keyword` <> '' ORDER BY `frequency` DESC LIMIT 20");
+	if(mysql_num_rows($result)>0){
+		while($row=mysql_fetch_assoc($result)){
+			array_push($trends, $row);
+		}
+	}
+	mysql_close($con);
+	return $trends;
+}
+
+
 ?>

@@ -70,7 +70,7 @@ function storeTheTweet($user,$text,$ts){
 	$text=mysql_real_escape_string($text);
 	if(!empty($text) && !empty($user) && !empty($ts)){
 		$con=mysql_connect(DB_HOST,DB_UNAME,DB_PASSWD);
-		mysql_select_db("koltweeps",$con);
+		mysql_select_db(DB_NAME,$con);
 		mysql_query("INSERT INTO `tweets` (`id`, `from`, `text`, `timestamp`)
 				   VALUES (NULL, '{$user}', '{$text}', '{$ts}')");
 				   //echo "INSERT INTO `tweets` (`id`, `from`, `text`, `timestamp`) VALUES (NULL, '{$user}', '{$text}', '{$ts}')";
@@ -85,7 +85,7 @@ function store_trends($text){
 	$keyword_list=extractCommonWords($text);
 	print_r($keyword_list);
 	$con=mysql_connect(DB_HOST,DB_UNAME,DB_PASSWD);
-	mysql_select_db("koltweeps",$con);
+	mysql_select_db(DB_NAME,$con);
 	foreach($keyword_list as $keywrd=>$freq){
 		if(mysql_query("UPDATE trends SET frequency = frequency +{$freq} WHERE keyword LIKE '{$keywrd}'")){
 			if(mysql_affected_rows()==0)
